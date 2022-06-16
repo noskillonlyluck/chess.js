@@ -1773,7 +1773,17 @@ export const Chess = function (fen) {
       for (var half_move = 0; half_move < moves.length; half_move++) {
         var comment = decode_comment(moves[half_move])
         if (comment !== undefined) {
-          comments[generate_fen()] = comment
+          /**
+           * DGT boards seem to write {%clk X} {%emt Y},
+           * so this is kinda necessary to work with double comments
+           */
+          let current_fen = generate_fen()
+          if (comments[current_fen] !== undefined) {
+            comments[current_fen] += ` ${comment}`
+          }
+          else {
+            comments[current_fen] = comment
+          }
           continue
         }
 
