@@ -425,7 +425,7 @@ export const Chess = function (fen) {
             return false
           }
           if (char.toUpperCase() === char) {
-            if (Math.floor(white_king_position / 8) !== 0) {
+            if (Math.floor(white_king_position / 8) !== 14) {
               return false
             }
             let char_index = "ABCDEFGH".indexOf(char)
@@ -463,7 +463,7 @@ export const Chess = function (fen) {
             }
           }
           else {
-            if (Math.floor(black_king_position / 8) !== 7) {
+            if (Math.floor(black_king_position / 8) !== 0) {
               return false
             }
             let char_index = "abcdefgh".indexOf(char)
@@ -1018,8 +1018,8 @@ export const Chess = function (fen) {
         if (castling[us] & BITS.KSIDE_CASTLE) {
           var castling_from = kings[us]
           var castling_to = rightmost_castling(castling[us])
-          if (us === BLACK) {
-            castling_to += 56
+          if (us === WHITE) {
+            castling_to += 112
           }
 
           let pass = true
@@ -1049,8 +1049,8 @@ export const Chess = function (fen) {
         if (castling[us] & BITS.QSIDE_CASTLE) {
           var castling_from = kings[us]
           var castling_to = leftmost_castling(castling[us])
-          if (us === BLACK) {
-            castling_to += 56
+          if (us === WHITE) {
+            castling_to += 112
           }
 
           let pass = true
@@ -1335,30 +1335,30 @@ export const Chess = function (fen) {
       /* if we castled, adjust both king & rook due to Shredder-FEN being implemented now (TK) */
       if (move.flags & BITS.KSIDE_CASTLE) {
         if (us === WHITE) {
+          kings[board[move.to].color] = 118
+          board[move.to] = null
+          board[118] = {type: KING, color: us}
+          board[117] = {type: ROOK, color: us}
+        }
+        else {
           kings[board[move.to].color] = 6
           board[move.to] = null
           board[6] = {type: KING, color: us}
           board[5] = {type: ROOK, color: us}
         }
-        else {
-          kings[board[move.to].color] = 62
-          board[move.to] = null
-          board[62] = {type: KING, color: us}
-          board[61] = {type: ROOK, color: us}
-        }
       }
       else if (move.flags & BITS.QSIDE_CASTLE) {
         if (us === WHITE) {
+          kings[board[move.to].color] = 114
+          board[move.to] = null
+          board[114] = {type: KING, color: us}
+          board[115] = {type: ROOK, color: us}
+        }
+        else {
           kings[board[move.to].color] = 2
           board[move.to] = null
           board[2] = {type: KING, color: us}
           board[3] = {type: ROOK, color: us}
-        }
-        else {
-          kings[board[move.to].color] = 58
-          board[move.to] = null
-          board[58] = {type: KING, color: us}
-          board[59] = {type: ROOK, color: us}
         }
       }
 
@@ -1476,30 +1476,30 @@ export const Chess = function (fen) {
     if (move.flags & (BITS.KSIDE_CASTLE | BITS.QSIDE_CASTLE)) {
       if (move.flags & BITS.KSIDE_CASTLE) {
         if (us === WHITE) {
-          board[5] = null
-          board[6] = null
+          board[117] = null
+          board[118] = null
           let rook_position = rightmost_castling(castling[us])
-          board[rook_position] = {type: ROOK, color: us}
+          board[112+rook_position] = {type: ROOK, color: us}
         }
         else {
-          board[61] = null
-          board[62] = null
+          board[5] = null
+          board[6] = null
           let rook_position = rightmost_castling(castling[us])
           board[rook_position] = {type: ROOK, color: us}
         }
       }
       else {
         if (us === WHITE) {
+          board[114] = null
+          board[115] = null
+          let rook_position = leftmost_castling(castling[us])
+          board[112+rook_position] = {type: ROOK, color: us}
+        }
+        else {
           board[2] = null
           board[3] = null
           let rook_position = leftmost_castling(castling[us])
           board[rook_position] = {type: ROOK, color: us}
-        }
-        else {
-          board[58] = null
-          board[59] = null
-          let rook_position = leftmost_castling(castling[us])
-          board[56+rook_position] = {type: ROOK, color: us}
         }
       }
       board[kings[us]] = {type: KING, color: us}
