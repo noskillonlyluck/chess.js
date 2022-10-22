@@ -93,14 +93,14 @@ const BITS = {
   PROMOTION: 16,
   KSIDE_CASTLE: 32,
   QSIDE_CASTLE: 64,
-  A_CASTLE: 1024,
-  B_CASTLE: 1152,
-  C_CASTLE: 1280,
-  D_CASTLE: 1408,
-  E_CASTLE: 1536,
-  F_CASTLE: 1664,
-  G_CASTLE: 1792,
-  H_CASTLE: 1920
+  A_CASTLE: 128,
+  B_CASTLE: 256,
+  C_CASTLE: 512,
+  D_CASTLE: 1024,
+  E_CASTLE: 2048,
+  F_CASTLE: 4096,
+  G_CASTLE: 8192,
+  H_CASTLE: 16384
 }
 
 const RANK_1 = 7
@@ -124,7 +124,7 @@ const SQUARE_MAP = {
   a1: 112, b1: 113, c1: 114, d1: 115, e1: 116, f1: 117, g1: 118, h1: 119
 };
 
-const ROOKS = {
+var ROOKS = {
   w: [
     { square: SQUARE_MAP.a1, flag: BITS.QSIDE_CASTLE },
     { square: SQUARE_MAP.h1, flag: BITS.KSIDE_CASTLE },
@@ -377,6 +377,9 @@ export const Chess = function (fen) {
     let white_king_position
     let black_king_position
 
+    let white_rooks_positions = []
+    let black_rooks_positions = []
+
     for (var i = 0; i < position.length; i++) {
       var piece = position.charAt(i)
 
@@ -394,9 +397,28 @@ export const Chess = function (fen) {
             black_king_position = square
           }
         }
+        else if (piece.toLowerCase() === 'r') {
+          if (color === WHITE) {
+            white_rooks_positions.push(square)
+          }
+          else {
+            black_rooks_positions.push(square)
+          }
+        }
         put({ type: piece.toLowerCase(), color: color }, algebraic(square))
         square++
       }
+    }
+
+    ROOKS = {
+      w: [
+        { square: SQUARE_MAP.a1, flag: BITS.QSIDE_CASTLE },
+        { square: SQUARE_MAP.h1, flag: BITS.KSIDE_CASTLE },
+      ],
+      b: [
+        { square: SQUARE_MAP.a8, flag: BITS.QSIDE_CASTLE },
+        { square: SQUARE_MAP.h8, flag: BITS.KSIDE_CASTLE },
+      ],
     }
 
     turn = tokens[1]
@@ -420,87 +442,143 @@ export const Chess = function (fen) {
           castling.b |= BITS.QSIDE_CASTLE
           castling.b |= BITS.A_CASTLE
           continue
-        default:
-          if ("ABCDEFGHabcdefgh".indexOf(char) === -1) {
-            return false
-          }
-          if (char.toUpperCase() === char) {
-            if (Math.floor(white_king_position / 8) !== 14) {
+          default:
+            if ("ABCDEFGHabcdefgh".indexOf(char) === -1) {
               return false
             }
-            let char_index = "ABCDEFGH".indexOf(char)
-            if (char_index < (white_king_position % 8)) {
-              castling.w |= BITS.QSIDE_CASTLE
+            if (char.toUpperCase() === char) {
+              if (Math.floor(white_king_position / 8) !== 14) {
+                return false
+              }
+              let char_index = "ABCDEFGH".indexOf(char)
+              if (char_index < (white_king_position % 8)) {
+                castling.w |= BITS.QSIDE_CASTLE
+              }
+              else {
+                castling.w |= BITS.KSIDE_CASTLE
+              }
+              switch (char) {
+                case "A":
+                  castling.w |= BITS.A_CASTLE
+                  ROOKS.w[0] = { square: SQUARE_MAP.a1, flag: BITS.QSIDE_CASTLE }
+                  break
+                case "B":
+                  castling.w |= BITS.B_CASTLE
+                  ROOKS.w[0] = { square: SQUARE_MAP.b1, flag: BITS.QSIDE_CASTLE }
+                  break
+                case "C":
+                  castling.w |= BITS.C_CASTLE
+                  if (char_index < (white_king_position % 8)) {
+                    ROOKS.w[0] = { square: SQUARE_MAP.c1, flag: BITS.QSIDE_CASTLE }
+                  }
+                  else {
+                    ROOKS.w[1] = { square: SQUARE_MAP.c1, flag: BITS.KSIDE_CASTLE }
+                  }
+                  break
+                case "D":
+                  castling.w |= BITS.D_CASTLE
+                  if (char_index < (white_king_position % 8)) {
+                    ROOKS.w[0] = { square: SQUARE_MAP.d1, flag: BITS.QSIDE_CASTLE }
+                  }
+                  else {
+                    ROOKS.w[1] = { square: SQUARE_MAP.d1, flag: BITS.KSIDE_CASTLE }
+                  }
+                  break
+                case "E":
+                  castling.w |= BITS.E_CASTLE
+                  if (char_index < (white_king_position % 8)) {
+                    ROOKS.w[0] = { square: SQUARE_MAP.e1, flag: BITS.QSIDE_CASTLE }
+                  }
+                  else {
+                    ROOKS.w[1] = { square: SQUARE_MAP.e1, flag: BITS.KSIDE_CASTLE }
+                  }
+                  break
+                case "F":
+                  castling.w |= BITS.F_CASTLE
+                  if (char_index < (white_king_position % 8)) {
+                    ROOKS.w[0] = { square: SQUARE_MAP.f1, flag: BITS.QSIDE_CASTLE }
+                  }
+                  else {
+                    ROOKS.w[1] = { square: SQUARE_MAP.f1, flag: BITS.KSIDE_CASTLE }
+                  }
+                  break
+                case "G":
+                  castling.w |= BITS.G_CASTLE
+                  ROOKS.w[1] = { square: SQUARE_MAP.g1, flag: BITS.KSIDE_CASTLE }
+                  break
+                default:
+                  castling.w |= BITS.H_CASTLE
+                  ROOKS.w[1] = { square: SQUARE_MAP.h1, flag: BITS.KSIDE_CASTLE }
+                  break
+              }
             }
             else {
-              castling.w |= BITS.KSIDE_CASTLE
+              if (Math.floor(black_king_position / 8) !== 0) {
+                return false
+              }
+              let char_index = "abcdefgh".indexOf(char)
+              if (char_index < (black_king_position % 8)) {
+                castling.b |= BITS.QSIDE_CASTLE
+              }
+              else {
+                castling.b |= BITS.KSIDE_CASTLE
+              }
+              switch (char) {
+                case "a":
+                  castling.b |= BITS.A_CASTLE
+                  ROOKS.b[0] = { square: SQUARE_MAP.a8, flag: BITS.QSIDE_CASTLE }
+                  break
+                case "b":
+                  castling.b |= BITS.B_CASTLE
+                  ROOKS.b[0] = { square: SQUARE_MAP.b8, flag: BITS.QSIDE_CASTLE }
+                  break
+                case "c":
+                  castling.b |= BITS.C_CASTLE
+                  if (char_index < (black_king_position % 8)) {
+                    ROOKS.b[0] = { square: SQUARE_MAP.c8, flag: BITS.QSIDE_CASTLE }
+                  }
+                  else {
+                    ROOKS.b[1] = { square: SQUARE_MAP.c8, flag: BITS.KSIDE_CASTLE }
+                  }
+                  break
+                case "d":
+                  castling.b |= BITS.D_CASTLE
+                  if (char_index < (black_king_position % 8)) {
+                    ROOKS.b[0] = { square: SQUARE_MAP.d8, flag: BITS.QSIDE_CASTLE }
+                  }
+                  else {
+                    ROOKS.b[1] = { square: SQUARE_MAP.d8, flag: BITS.KSIDE_CASTLE }
+                  }
+                  break
+                case "e":
+                  castling.b |= BITS.E_CASTLE
+                  if (char_index < (black_king_position % 8)) {
+                    ROOKS.b[0] = { square: SQUARE_MAP.e8, flag: BITS.QSIDE_CASTLE }
+                  }
+                  else {
+                    ROOKS.b[1] = { square: SQUARE_MAP.e8, flag: BITS.KSIDE_CASTLE }
+                  }
+                  break
+                case "f":
+                  castling.b |= BITS.F_CASTLE
+                  if (char_index < (black_king_position % 8)) {
+                    ROOKS.b[0] = { square: SQUARE_MAP.f8, flag: BITS.QSIDE_CASTLE }
+                  }
+                  else {
+                    ROOKS.b[1] = { square: SQUARE_MAP.f8, flag: BITS.KSIDE_CASTLE }
+                  }
+                  break
+                case "g":
+                  castling.b |= BITS.G_CASTLE
+                  ROOKS.b[1] = { square: SQUARE_MAP.g8, flag: BITS.KSIDE_CASTLE }
+                  break
+                default:
+                  castling.b |= BITS.H_CASTLE
+                  ROOKS.b[1] = { square: SQUARE_MAP.g8, flag: BITS.KSIDE_CASTLE }
+                  break
+              }
             }
-            switch (char) {
-              case "A":
-                castling.w |= BITS.A_CASTLE
-                break
-              case "B":
-                castling.w |= BITS.B_CASTLE
-                break
-              case "C":
-                castling.w |= BITS.C_CASTLE
-                break
-              case "D":
-                castling.w |= BITS.D_CASTLE
-                break
-              case "E":
-                castling.w |= BITS.E_CASTLE
-                break
-              case "F":
-                castling.w |= BITS.F_CASTLE
-                break
-              case "G":
-                castling.w |= BITS.G_CASTLE
-                break
-              default:
-                castling.w |= BITS.H_CASTLE
-                break
-            }
-          }
-          else {
-            if (Math.floor(black_king_position / 8) !== 0) {
-              return false
-            }
-            let char_index = "abcdefgh".indexOf(char)
-            if (char_index < (black_king_position % 8)) {
-              castling.b |= BITS.QSIDE_CASTLE
-            }
-            else {
-              castling.b |= BITS.KSIDE_CASTLE
-            }
-            switch (char) {
-              case "a":
-                castling.b |= BITS.A_CASTLE
-                break
-              case "b":
-                castling.b |= BITS.B_CASTLE
-                break
-              case "c":
-                castling.b |= BITS.C_CASTLE
-                break
-              case "d":
-                castling.b |= BITS.D_CASTLE
-                break
-              case "e":
-                castling.b |= BITS.E_CASTLE
-                break
-              case "f":
-                castling.b |= BITS.F_CASTLE
-                break
-              case "g":
-                castling.b |= BITS.G_CASTLE
-                break
-              default:
-                castling.b |= BITS.H_CASTLE
-                break
-            }
-          }
-          continue
+            continue
       }
     }
 
@@ -833,46 +911,46 @@ export const Chess = function (fen) {
     return move
   }
 
-  function rightmost_castling(castling) {
-    if (castling & A_CASTLE) {
+  function leftmost_castling(castling) {
+    if (castling & BITS.A_CASTLE) {
       return 0
     }
-    if (castling & B_CASTLE) {
+    if (castling & BITS.B_CASTLE) {
       return 1
     }
-    if (castling & C_CASTLE) {
+    if (castling & BITS.C_CASTLE) {
       return 2
     }
-    if (castling & D_CASTLE) {
+    if (castling & BITS.D_CASTLE) {
       return 3
     }
-    if (castling & E_CASTLE) {
+    if (castling & BITS.E_CASTLE) {
       return 4
     }
-    if (castling & F_CASTLE) {
+    if (castling & BITS.F_CASTLE) {
       return 5
     }
 
     return null
   }
 
-  function leftmost_castling(castling) {
-    if (castling & H_CASTLE) {
+  function rightmost_castling(castling) {
+    if (castling & BITS.H_CASTLE) {
       return 7
     }
-    if (castling & G_CASTLE) {
+    if (castling & BITS.G_CASTLE) {
       return 6
     }
-    if (castling & F_CASTLE) {
+    if (castling & BITS.F_CASTLE) {
       return 5
     }
-    if (castling & E_CASTLE) {
+    if (castling & BITS.E_CASTLE) {
       return 4
     }
-    if (castling & D_CASTLE) {
+    if (castling & BITS.D_CASTLE) {
       return 3
     }
-    if (castling & C_CASTLE) {
+    if (castling & BITS.C_CASTLE) {
       return 2
     }
 
@@ -1024,7 +1102,8 @@ export const Chess = function (fen) {
 
           let pass = true
           
-          for (let i = castling_from+1; i < castling_to-1 || i <= 6; i++) {
+          let new_king_position = us === BLACK ? SQUARE_MAP.g8 : SQUARE_MAP.g1
+          for (let i = castling_from+1; i < castling_to-1 || i <= new_king_position; i++) {
             if (i === castling_to) {
               continue
             }
@@ -1033,10 +1112,19 @@ export const Chess = function (fen) {
               break
             }
           }
-          for (let i = castling_from; i <= 6; i++) {
+          for (let i = castling_from; i <= new_king_position; i++) {
             if (attacked(them, i)) {
               pass = false
               break
+            }
+          }
+
+          if (castling_from % 8 === 6) {
+            if (board[castling_from-1] != null) {
+              pass = false
+            }
+            else if (attacked(them, castling_from)) {
+              pass = false
             }
           }
 
@@ -1055,7 +1143,8 @@ export const Chess = function (fen) {
 
           let pass = true
 
-          for (let i = castling_from-1; i > castling_to+1 || i >= 2; i--) {
+          let new_king_position = us === BLACK ? SQUARE_MAP.c8 : SQUARE_MAP.c1
+          for (let i = castling_from-1; i > castling_to+1 || i >= new_king_position; i--) {
             if (i === castling_to) {
               continue
             }
@@ -1064,10 +1153,31 @@ export const Chess = function (fen) {
               break
             }
           }
-          for (let i = castling_from; i >= 2; i--) {
+          for (let i = castling_from; i >= new_king_position; i--) {
             if (attacked(them, i)) {
               pass = false
               break
+            }
+          }
+
+          if (castling_from % 8 === 2) {
+            if (board[castling_from+1] != null) {
+              pass = false
+            }
+          }
+          else if (castling_from % 8 === 1) {
+            if (board[castling_from+1] != null) {
+              pass = false
+            }
+            else if (board[castling_from+2] != null) {
+              pass = false
+            }
+
+            if (attacked(them, castling_from)) {
+              pass = false
+            }
+            else if (attacked(them, castling_from+1)) {
+              pass = false
             }
           }
 
@@ -1457,7 +1567,12 @@ export const Chess = function (fen) {
     var us = turn
     var them = swap_color(turn)
 
-    board[move.from] = board[move.to]
+    if (castling[us] & (BITS.KSIDE_CASTLE | BITS.QSIDE_CASTLE)) {
+      board[move.from] = {type: KING, color: us}
+    }
+    else {
+      board[move.from] = board[move.to]
+    }
     board[move.from].type = move.piece // to undo any promotions
     board[move.to] = null
 
