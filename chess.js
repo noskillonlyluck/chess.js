@@ -28,7 +28,7 @@
 const SYMBOLS = 'pnbrqkPNBRQK'
 
 const DEFAULT_POSITION =
-  'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+  'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1'
 
 const TERMINATION_MARKERS = ['1-0', '0-1', '1/2-1/2', '*']
 
@@ -93,6 +93,14 @@ const BITS = {
   PROMOTION: 16,
   KSIDE_CASTLE: 32,
   QSIDE_CASTLE: 64,
+  A_CASTLE: 1024,
+  B_CASTLE: 1152,
+  C_CASTLE: 1280,
+  D_CASTLE: 1408,
+  E_CASTLE: 1536,
+  F_CASTLE: 1664,
+  G_CASTLE: 1792,
+  H_CASTLE: 1920
 }
 
 const RANK_1 = 7
@@ -366,6 +374,9 @@ export const Chess = function (fen) {
 
     clear(keep_headers)
 
+    let white_king_position
+    let black_king_position
+
     for (var i = 0; i < position.length; i++) {
       var piece = position.charAt(i)
 
@@ -375,6 +386,14 @@ export const Chess = function (fen) {
         square += parseInt(piece, 10)
       } else {
         var color = piece < 'a' ? WHITE : BLACK
+        if (piece.toLowerCase() === 'k') {
+          if (color === WHITE) {
+            white_king_position = square
+          }
+          else {
+            black_king_position = square
+          }
+        }
         put({ type: piece.toLowerCase(), color: color }, algebraic(square))
         square++
       }
@@ -382,17 +401,107 @@ export const Chess = function (fen) {
 
     turn = tokens[1]
 
-    if (tokens[2].indexOf('K') > -1) {
-      castling.w |= BITS.KSIDE_CASTLE
-    }
-    if (tokens[2].indexOf('Q') > -1) {
-      castling.w |= BITS.QSIDE_CASTLE
-    }
-    if (tokens[2].indexOf('k') > -1) {
-      castling.b |= BITS.KSIDE_CASTLE
-    }
-    if (tokens[2].indexOf('q') > -1) {
-      castling.b |= BITS.QSIDE_CASTLE
+    for (let i = 0; i < tokens[2].length; i++) {
+      let char = tokens[2][i]
+      switch(char) {
+        case "K":
+          castling.w |= BITS.KSIDE_CASTLE
+          castling.w |= BITS.H_CASTLE
+          continue
+        case "Q":
+          castling.w |= BITS.QSIDE_CASTLE
+          castling.w |= BITS.A_CASTLE
+          continue
+        case "k":
+          castling.b |= BITS.KSIDE_CASTLE
+          castling.b |= BITS.H_CASTLE
+          continue
+        case "q":
+          castling.b |= BITS.QSIDE_CASTLE
+          castling.b |= BITS.A_CASTLE
+          continue
+        default:
+          if ("ABCDEFGHabcdefgh".indexOf(char) === -1) {
+            return false
+          }
+          if (char.toUpperCase() === char) {
+            if (Math.floor(white_king_position / 8) !== 0) {
+              return false
+            }
+            let char_index = "ABCDEFGH".indexOf(char)
+            if (char_index < (white_king_position % 8)) {
+              castling.w |= BITS.QSIDE_CASTLE
+            }
+            else {
+              castling.w |= BITS.KSIDE_CASTLE
+            }
+            switch (char) {
+              case "A":
+                castling.w |= BITS.A_CASTLE
+                break
+              case "B":
+                castling.w |= BITS.B_CASTLE
+                break
+              case "C":
+                castling.w |= BITS.C_CASTLE
+                break
+              case "D":
+                castling.w |= BITS.D_CASTLE
+                break
+              case "E":
+                castling.w |= BITS.E_CASTLE
+                break
+              case "F":
+                castling.w |= BITS.F_CASTLE
+                break
+              case "G":
+                castling.w |= BITS.G_CASTLE
+                break
+              default:
+                castling.w |= BITS.H_CASTLE
+                break
+            }
+          }
+          else {
+            if (Math.floor(black_king_position / 8) !== 7) {
+              return false
+            }
+            let char_index = "abcdefgh".indexOf(char)
+            if (char_index < (black_king_position % 8)) {
+              castling.b |= BITS.QSIDE_CASTLE
+            }
+            else {
+              castling.b |= BITS.KSIDE_CASTLE
+            }
+            switch (char) {
+              case "a":
+                castling.b |= BITS.A_CASTLE
+                break
+              case "b":
+                castling.b |= BITS.B_CASTLE
+                break
+              case "c":
+                castling.b |= BITS.C_CASTLE
+                break
+              case "d":
+                castling.b |= BITS.D_CASTLE
+                break
+              case "e":
+                castling.b |= BITS.E_CASTLE
+                break
+              case "f":
+                castling.b |= BITS.F_CASTLE
+                break
+              case "g":
+                castling.b |= BITS.G_CASTLE
+                break
+              default:
+                castling.b |= BITS.H_CASTLE
+                break
+            }
+          }
+          continue
+      }
     }
 
     ep_square = tokens[3] === '-' ? EMPTY : SQUARE_MAP[tokens[3]]
@@ -447,8 +556,10 @@ export const Chess = function (fen) {
     }
 
     /* 5th criterion: 3th field is a valid castle-string? */
-    if (!/^(KQ?k?q?|Qk?q?|kq?|q|-)$/.test(tokens[2])) {
-      return { valid: false, error_number: 5, error: errors[5] }
+    for (let i = 0; i < tokens[2].length; i++) {
+      if ("KQkqABCDEFGHabcdefgh-".indexOf(tokens[2][i]) === -1) {
+        return { valid: false, error_number: 5, error: errors[5] }
+      }
     }
 
     /* 6th criterion: 2nd field is "w" (white) or "b" (black)? */
@@ -533,16 +644,84 @@ export const Chess = function (fen) {
 
     var cflags = ''
     if (castling[WHITE] & BITS.KSIDE_CASTLE) {
-      cflags += 'K'
+      if (castling[WHITE] & BITS.H_CASTLE) {
+        cflags += 'H'
+      }
+      else if (castling[WHITE] & BITS.G_CASTLE) {
+        cflags += "G"
+      }
+      else if (castling[WHITE] & BITS.F_CASTLE) {
+        cflags += "F"
+      }
+      else if (castling[WHITE] & BITS.E_CASTLE) {
+        cflags += "E"
+      }
+      else if (castling[WHITE] & BITS.D_CASTLE) {
+        cflags += "D"
+      }
+      else if (castling[WHITE] & BITS.C_CASTLE) {
+        cflags += "C"
+      }
     }
     if (castling[WHITE] & BITS.QSIDE_CASTLE) {
-      cflags += 'Q'
+      if (castling[WHITE] & BITS.A_CASTLE) {
+        cflags += "A"
+      }
+      else if (castling[WHITE] & BITS.B_CASTLE) {
+        cflags += "B"
+      }
+      else if (castling[WHITE] & BITS.C_CASTLE) {
+        cflags += "C"
+      }
+      else if (castling[WHITE] & BITS.D_CASTLE) {
+        cflags += "D"
+      }
+      else if (castling[WHITE] & BITS.E_CASTLE) {
+        cflags += "E"
+      }
+      else if (castling[WHITE] & BITS.F_CASTLE) {
+        cflags += "F"
+      }
     }
     if (castling[BLACK] & BITS.KSIDE_CASTLE) {
-      cflags += 'k'
+      if (castling[BLACK] & BITS.H_CASTLE) {
+        cflags += 'h'
+      }
+      else if (castling[BLACK] & BITS.G_CASTLE) {
+        cflags += "g"
+      }
+      else if (castling[BLACK] & BITS.F_CASTLE) {
+        cflags += "f"
+      }
+      else if (castling[BLACK] & BITS.E_CASTLE) {
+        cflags += "e"
+      }
+      else if (castling[BLACK] & BITS.D_CASTLE) {
+        cflags += "d"
+      }
+      else if (castling[BLACK] & BITS.C_CASTLE) {
+        cflags += "c"
+      }
     }
     if (castling[BLACK] & BITS.QSIDE_CASTLE) {
-      cflags += 'q'
+      if (castling[BLACK] & BITS.A_CASTLE) {
+        cflags += "a"
+      }
+      else if (castling[BLACK] & BITS.B_CASTLE) {
+        cflags += "b"
+      }
+      else if (castling[BLACK] & BITS.C_CASTLE) {
+        cflags += "c"
+      }
+      else if (castling[BLACK] & BITS.D_CASTLE) {
+        cflags += "d"
+      }
+      else if (castling[BLACK] & BITS.E_CASTLE) {
+        cflags += "e"
+      }
+      else if (castling[BLACK] & BITS.F_CASTLE) {
+        cflags += "f"
+      }
     }
 
     /* do we have an empty castling flag? */
@@ -652,6 +831,73 @@ export const Chess = function (fen) {
       move.captured = PAWN
     }
     return move
+  }
+
+  function rightmost_castling(castling) {
+    if (castling & A_CASTLE) {
+      return 0
+    }
+    if (castling & B_CASTLE) {
+      return 1
+    }
+    if (castling & C_CASTLE) {
+      return 2
+    }
+    if (castling & D_CASTLE) {
+      return 3
+    }
+    if (castling & E_CASTLE) {
+      return 4
+    }
+    if (castling & F_CASTLE) {
+      return 5
+    }
+
+    return null
+  }
+
+  function leftmost_castling(castling) {
+    if (castling & H_CASTLE) {
+      return 7
+    }
+    if (castling & G_CASTLE) {
+      return 6
+    }
+    if (castling & F_CASTLE) {
+      return 5
+    }
+    if (castling & E_CASTLE) {
+      return 4
+    }
+    if (castling & D_CASTLE) {
+      return 3
+    }
+    if (castling & C_CASTLE) {
+      return 2
+    }
+
+    return null
+  }
+
+  function rook_position_to_bits(rook_position) {
+    switch (rook_position) {
+      case 0:
+        return BITS.A_CASTLE
+      case 1:
+        return BITS.B_CASTLE
+      case 2:
+        return BITS.C_CASTLE
+      case 3:
+        return BITS.D_CASTLE
+      case 4:
+        return BITS.E_CASTLE
+      case 5:
+        return BITS.F_CASTLE
+      case 6:
+        return BITS.G_CASTLE
+      default:
+        return BITS.H_CASTLE
+    }
   }
 
   function generate_moves(options) {
@@ -771,15 +1017,30 @@ export const Chess = function (fen) {
         /* king-side castling */
         if (castling[us] & BITS.KSIDE_CASTLE) {
           var castling_from = kings[us]
-          var castling_to = castling_from + 2
+          var castling_to = rightmost_castling(castling[us])
+          if (us === BLACK) {
+            castling_to += 56
+          }
 
-          if (
-            board[castling_from + 1] == null &&
-            board[castling_to] == null &&
-            !attacked(them, kings[us]) &&
-            !attacked(them, castling_from + 1) &&
-            !attacked(them, castling_to)
-          ) {
+          let pass = true
+          
+          for (let i = castling_from+1; i < castling_to-1 || i <= 6; i++) {
+            if (i === castling_to) {
+              continue
+            }
+            if (board[i] != null) {
+              pass = false
+              break
+            }
+          }
+          for (let i = castling_from; i <= 6; i++) {
+            if (attacked(them, i)) {
+              pass = false
+              break
+            }
+          }
+
+          if (pass === true) {
             add_move(board, moves, kings[us], castling_to, BITS.KSIDE_CASTLE)
           }
         }
@@ -787,16 +1048,30 @@ export const Chess = function (fen) {
         /* queen-side castling */
         if (castling[us] & BITS.QSIDE_CASTLE) {
           var castling_from = kings[us]
-          var castling_to = castling_from - 2
+          var castling_to = leftmost_castling(castling[us])
+          if (us === BLACK) {
+            castling_to += 56
+          }
 
-          if (
-            board[castling_from - 1] == null &&
-            board[castling_from - 2] == null &&
-            board[castling_from - 3] == null &&
-            !attacked(them, kings[us]) &&
-            !attacked(them, castling_from - 1) &&
-            !attacked(them, castling_to)
-          ) {
+          let pass = true
+
+          for (let i = castling_from-1; i > castling_to+1 || i >= 2; i--) {
+            if (i === castling_to) {
+              continue
+            }
+            if (board[i] != null) {
+              pass = false
+              break
+            }
+          }
+          for (let i = castling_from; i >= 2; i--) {
+            if (attacked(them, i)) {
+              pass = false
+              break
+            }
+          }
+
+          if (pass === true) {
             add_move(board, moves, kings[us], castling_to, BITS.QSIDE_CASTLE)
           }
         }
@@ -1057,17 +1332,34 @@ export const Chess = function (fen) {
     if (board[move.to].type === KING) {
       kings[board[move.to].color] = move.to
 
-      /* if we castled, move the rook next to the king */
+      /* if we castled, adjust both king & rook due to Shredder-FEN being implemented now (TK) */
       if (move.flags & BITS.KSIDE_CASTLE) {
-        var castling_to = move.to - 1
-        var castling_from = move.to + 1
-        board[castling_to] = board[castling_from]
-        board[castling_from] = null
-      } else if (move.flags & BITS.QSIDE_CASTLE) {
-        var castling_to = move.to + 1
-        var castling_from = move.to - 2
-        board[castling_to] = board[castling_from]
-        board[castling_from] = null
+        if (us === WHITE) {
+          kings[board[move.to].color] = 6
+          board[move.to] = null
+          board[6] = {type: KING, color: us}
+          board[5] = {type: ROOK, color: us}
+        }
+        else {
+          kings[board[move.to].color] = 62
+          board[move.to] = null
+          board[62] = {type: KING, color: us}
+          board[61] = {type: ROOK, color: us}
+        }
+      }
+      else if (move.flags & BITS.QSIDE_CASTLE) {
+        if (us === WHITE) {
+          kings[board[move.to].color] = 2
+          board[move.to] = null
+          board[2] = {type: KING, color: us}
+          board[3] = {type: ROOK, color: us}
+        }
+        else {
+          kings[board[move.to].color] = 58
+          board[move.to] = null
+          board[58] = {type: KING, color: us}
+          board[59] = {type: ROOK, color: us}
+        }
       }
 
       /* turn off castling */
@@ -1081,7 +1373,18 @@ export const Chess = function (fen) {
           move.from === ROOKS[us][i].square &&
           castling[us] & ROOKS[us][i].flag
         ) {
-          castling[us] ^= ROOKS[us][i].flag
+          if (ROOKS[us][i].flag === BITS.KSIDE_CASTLE) {
+            let rightmost_rook = rightmost_castling(castling[us])
+            let bits = rook_position_to_bits(rightmost_rook)
+            castling[us] ^= ROOKS[us][i].flag
+            castling[us] ^= bits
+          }
+          else {
+            let leftmost_rook = leftmost_castling(castling[us])
+            let bits = rook_position_to_bits(leftmost_rook)
+            castling[us] ^= ROOKS[us][i].flag
+            castling[us] ^= bits
+          }
           break
         }
       }
@@ -1094,7 +1397,18 @@ export const Chess = function (fen) {
           move.to === ROOKS[them][i].square &&
           castling[them] & ROOKS[them][i].flag
         ) {
-          castling[them] ^= ROOKS[them][i].flag
+          if (ROOK[them][i].flag === BITS.KSIDE_CASTLE) {
+            let rightmost_rook = rightmost_castling(castling[them])
+            let bits = rook_position_to_bits(rightmost_rook)
+            castling[them] ^= ROOKS[them][i].flag
+            castling[them] ^= bits
+          }
+          else {
+            let leftmost_rook = leftmost_castling(castling[them])
+            let bits = rook_position_to_bits(leftmost_rook)
+            castling[them] ^= ROOKS[them][i].flag
+            castling[them] ^= bits
+          }
           break
         }
       }
@@ -1160,17 +1474,35 @@ export const Chess = function (fen) {
     }
 
     if (move.flags & (BITS.KSIDE_CASTLE | BITS.QSIDE_CASTLE)) {
-      var castling_to, castling_from
       if (move.flags & BITS.KSIDE_CASTLE) {
-        castling_to = move.to + 1
-        castling_from = move.to - 1
-      } else if (move.flags & BITS.QSIDE_CASTLE) {
-        castling_to = move.to - 2
-        castling_from = move.to + 1
+        if (us === WHITE) {
+          board[5] = null
+          board[6] = null
+          let rook_position = rightmost_castling(castling[us])
+          board[rook_position] = {type: ROOK, color: us}
+        }
+        else {
+          board[61] = null
+          board[62] = null
+          let rook_position = rightmost_castling(castling[us])
+          board[rook_position] = {type: ROOK, color: us}
+        }
       }
-
-      board[castling_to] = board[castling_from]
-      board[castling_from] = null
+      else {
+        if (us === WHITE) {
+          board[2] = null
+          board[3] = null
+          let rook_position = leftmost_castling(castling[us])
+          board[rook_position] = {type: ROOK, color: us}
+        }
+        else {
+          board[58] = null
+          board[59] = null
+          let rook_position = leftmost_castling(castling[us])
+          board[56+rook_position] = {type: ROOK, color: us}
+        }
+      }
+      board[kings[us]] = {type: KING, color: us}
     }
 
     return move
@@ -1464,7 +1796,7 @@ export const Chess = function (fen) {
       var result = []
       var header_exists = false
 
-      /* add the PGN header headerrmation */
+      /* add the PGN header information */
       for (var i in header) {
         /* TODO: order of enumerated properties in header object is not
          * guaranteed, see ECMA-262 spec (section 12.6.4)
@@ -1505,9 +1837,11 @@ export const Chess = function (fen) {
         move_string = append_comment(move_string)
         var move = reversed_history.pop()
 
-        /* if the position started with black to move, start PGN with 1. ... */
+        /* if the position started with black to move, start PGN with #. ... */
         if (!history.length && move.color === 'b') {
-          move_string = move_number + '. ...'
+          const prefix = `${move_number}. ...`
+          /* is there a comment preceding the first move? */
+          move_string = move_string ? `${move_string} ${prefix}` : prefix
         } else if (move.color === 'w') {
           /* store the previous generated move_string if we have one */
           if (move_string.length) {
@@ -1777,14 +2111,14 @@ export const Chess = function (fen) {
            * DGT boards seem to write {%clk X} {%emt Y},
            * so this is kinda necessary to work with double comments
            */
-          let current_fen = generate_fen()
-          if (comments[current_fen] !== undefined) {
-            comments[current_fen] += ` ${comment}`
-          }
-          else {
-            comments[current_fen] = comment
-          }
-          continue
+           let current_fen = generate_fen()
+           if (comments[current_fen] !== undefined) {
+             comments[current_fen] += ` ${comment}`
+           }
+           else {
+             comments[current_fen] = comment
+           }
+           continue
         }
 
         move = move_from_san(moves[half_move], sloppy)
