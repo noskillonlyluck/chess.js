@@ -1,6 +1,6 @@
 {
   "name": "@noskillonlyluck/chess-js",
-  "version": "0.14.8",
+  "version": "0.14.10",
   "license": "BSD-2-Clause",
   "type": "module",
   "main": "chess.js",

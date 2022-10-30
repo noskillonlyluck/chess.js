@@ -574,7 +574,7 @@ export const Chess = function (fen) {
                   break
                 default:
                   castling.b |= BITS.H_CASTLE
-                  ROOKS.b[1] = { square: SQUARE_MAP.g8, flag: BITS.KSIDE_CASTLE }
+                  ROOKS.b[1] = { square: SQUARE_MAP.h8, flag: BITS.KSIDE_CASTLE }
                   break
               }
             }
@@ -1507,7 +1507,7 @@ export const Chess = function (fen) {
           move.to === ROOKS[them][i].square &&
           castling[them] & ROOKS[them][i].flag
         ) {
-          if (ROOK[them][i].flag === BITS.KSIDE_CASTLE) {
+          if (ROOKS[them][i].flag === BITS.KSIDE_CASTLE) {
             let rightmost_rook = rightmost_castling(castling[them])
             let bits = rook_position_to_bits(rightmost_rook)
             castling[them] ^= ROOKS[them][i].flag
